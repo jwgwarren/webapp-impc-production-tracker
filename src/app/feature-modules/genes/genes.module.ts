@@ -1,20 +1,13 @@
 import { NgModule } from '@angular/core';
-import { GenesRouting } from './genes.routing';
-import { GeneSearchComponent } from './gene-search';
+import { GeneComponent } from './components/gene/gene.component';
 import { SharedModule } from 'src/app/shared/shared.module';
 
-// import { MatExpansionPanel } from '@angular/material';
-
 @NgModule({
-  declarations: [
-    GeneSearchComponent,
-  ],
+  declarations: [GeneComponent],
   imports: [
-    SharedModule,
-    GenesRouting
-  ],
-  exports: [
-    // MatExpansionPanel,
+    SharedModule
+  ], exports: [
+    GeneComponent
   ]
 })
 export class GenesModule { }

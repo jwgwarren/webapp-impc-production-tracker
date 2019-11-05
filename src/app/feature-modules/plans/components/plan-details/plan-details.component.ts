@@ -14,12 +14,9 @@ export class PlanDetailsComponent implements OnInit {
 
   canUpdatePlan: boolean;
 
-  dropdownSettingsSingle = {};
-  dropdownSettingsMultiple = {};
-
   editPlanDetails: FormGroup;
 
-  privacies: any[] = [];
+  privacies: NamedValue[] = [];
   selectedPrivacy = [];
 
   configurationData: ConfigurationData;
@@ -33,27 +30,10 @@ export class PlanDetailsComponent implements OnInit {
   ngOnInit() {
     this.configurationDataService.getConfigurationData().subscribe(data => {
       this.configurationData = data;
-      this.privacies = this.configurationData.privacies.map(x => { return { name: x } });
+      this.privacies = this.configurationData.privacies.map(x => ({ name: x }));
     });
 
     this.loadPermissions();
-
-    this.dropdownSettingsSingle = {
-      singleSelection: true,
-      idField: 'name',
-      textField: 'name',
-      enableCheckAll: false,
-      allowSearchFilter: true
-    };
-
-    this.dropdownSettingsMultiple = {
-      singleSelection: false,
-      idField: 'name',
-      textField: 'name',
-      selectAllText: 'Select All',
-      unSelectAllText: 'UnSelect All',
-      allowSearchFilter: true
-    };
 
     this.editPlanDetails = this.formBuilder.group({
       privacy: ['', Validators.required],

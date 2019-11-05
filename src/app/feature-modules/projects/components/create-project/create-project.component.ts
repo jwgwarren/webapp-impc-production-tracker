@@ -1,12 +1,15 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { LocalDataSource } from 'ng2-smart-table';
+// import { LocalDataSource } from 'ng2-smart-table';
 import { first } from 'rxjs/operators';
-import { WorkGroup, Gene, LoggedUser, ConfigurationData, LoggedUserService, ConfigurationDataService, 
-  WorkGroupService, GeneService } from 'src/app/core';
+import {
+  WorkGroup, ConfigurationData, LoggedUserService, ConfigurationDataService,
+  WorkGroupService, GeneService
+} from 'src/app/core';
 import { NewProject } from '../../model/newProject';
 import { FunderService } from 'src/app/core/services/funder.service';
 import { ProjectService } from '../..';
+import { Gene } from 'src/app/model/bio/gene';
 
 @Component({
   selector: 'app-create-project',
@@ -27,23 +30,22 @@ export class CreateProjectComponent implements OnInit {
   projectIntentions: string[] = [];
   projectIntentionsTable: any;
   funders: any[] = [];
-  backgroundStrains: string[]  = [];
+  backgroundStrains: string[] = [];
   backgroundStrainsTable: any;
   symbol: string;
   genes: Gene[] = [];
-  gene: any;
+  gene: Gene;
   genesLoading = false;
   keyword: string;
   isLoading = false;
   placeHolder: string;
   newProject: NewProject;
-  loggerUser: LoggedUser;
   configurationData: ConfigurationData;
   isDisabled = true;
 
-  @ViewChild('autocomplete',  {static: true}) autocomplete;
-
-  projectGenes: LocalDataSource;
+  @ViewChild('autocomplete', { static: true }) autocomplete;
+  /* tslint:disable */
+  projectGenes: any;
   geneSettings = {
     mode: external,
     hideSubHeader: true,
@@ -84,8 +86,8 @@ export class CreateProjectComponent implements OnInit {
       deleteConfirm: true
     },
   };
-
-  projectLocations: LocalDataSource;
+/* tslint:enable */
+  projectLocations: any;
   locationSettings = {
     // mode: external,
     hideSubHeader: false,
@@ -125,7 +127,7 @@ export class CreateProjectComponent implements OnInit {
           type: 'list',
           config: {
             selectText: 'Select',
-            list: [{title: '+', value: 'Positive'}, {title: '-', value: 'Negative'}]
+            list: [{ title: '+', value: 'Positive' }, { title: '-', value: 'Negative' }]
           }
         },
         sort: false
@@ -170,7 +172,7 @@ export class CreateProjectComponent implements OnInit {
           type: 'list',
           config: {
             selectText: 'Select',
-            list: [{title: 'Mouse', value: 'Mouse'}, {title: 'Human', value: 'Human'}]
+            list: [{ title: 'Mouse', value: 'Mouse' }, { title: 'Human', value: 'Human' }]
           }
         },
         sort: false
@@ -224,8 +226,8 @@ export class CreateProjectComponent implements OnInit {
     this.keyword = 'symbol';
     this.placeHolder = 'Search for a mouse gene';
 
-    this.projectGenes = new LocalDataSource();
-    this.projectLocations = new LocalDataSource();
+    // this.projectGenes = new LocalDataSource();
+    // this.projectLocations = new LocalDataSource();
 
     this.createProjectForm = this.formBuilder.group({
       workUnit: ['', Validators.required],
@@ -241,19 +243,19 @@ export class CreateProjectComponent implements OnInit {
     // });
 
     this.workGroupService.getWorkGroupByWorkUnit(this.f.workUnit.value).pipe(first()).subscribe(data => {
-        if (data) {
-          this.workGroups = data;
-        } else {
-          this.workGroups = [];
-        }
-      },
+      if (data) {
+        this.workGroups = data;
+      } else {
+        this.workGroups = [];
+      }
+    },
       error => {
         this.error = error;
-    });
+      });
 
     this.backgroundStrains = this.configurationData.trackedStrains;
     console.log('this.backgroundStrains => ', this.configurationData);
-    this.backgroundStrainsTable = this.backgroundStrains.map( (strain, index) => {
+    this.backgroundStrainsTable = this.backgroundStrains.map((strain, index) => {
       const strainName = {
         title: strain,
         value: strain
@@ -264,7 +266,7 @@ export class CreateProjectComponent implements OnInit {
 
     // this.priorities = this.configurationData.priorities;
     this.projectIntentions = this.configurationData.alleleTypes;
-    this.projectIntentionsTable = this.projectIntentions.map( (intent, index) => {
+    this.projectIntentionsTable = this.projectIntentions.map((intent, index) => {
       const intention = {
         title: intent,
         value: intent
@@ -336,8 +338,9 @@ export class CreateProjectComponent implements OnInit {
       // TODO
       return;
     }
-    let gene = new Gene();
-    gene = { symbol: this.gene.symbol, mgiId: this.gene.mgiId, intention: '' };
+    const gene = new Gene();
+    gene.symbol = this.gene.symbol;
+    gene.accessionId = this.gene.accessionId;
     this.addGeneToProjectGenes(gene);
     e.stopPropagation();
     this.autocomplete.clear();
@@ -381,18 +384,18 @@ export class CreateProjectComponent implements OnInit {
     };
 
     this.projectService.postProject(this.newProject)
-        .pipe(first())
-        .subscribe(
-          data => {
-            this.loading = false;
-            console.log('Data => ', data);
-          },
-          error => {
-            this.error = error;
-            this.loading = false;
-            console.log('error: ', this.error);
-          }
-        );
+      .pipe(first())
+      .subscribe(
+        data => {
+          this.loading = false;
+          console.log('Data => ', data);
+        },
+        error => {
+          this.error = error;
+          this.loading = false;
+          console.log('error: ', this.error);
+        }
+      );
 
     console.log('newProject => ', this.newProject);
     this.resetForm();

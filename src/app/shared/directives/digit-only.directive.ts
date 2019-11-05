@@ -1,7 +1,7 @@
 import { Directive, Input, ElementRef, HostListener } from '@angular/core';
 
 @Directive({
-  selector: '[digitOnly]'
+  selector: '[appDigitOnly]'
 })
 export class DigitOnlyDirective {
   private decimalCounter = 0;
@@ -19,7 +19,7 @@ export class DigitOnlyDirective {
     'Copy',
     'Paste'
   ];
-  @Input() decimal? = false;
+  @Input() decimal ? = false;
   inputElement: HTMLElement;
 
   constructor(public el: ElementRef) {
@@ -99,7 +99,7 @@ export class DigitOnlyDirective {
     }
   }
 
-  isValidDecimal(string: string): boolean {
-    return string.split('.').length <= 2;
+  isValidDecimal(value: string): boolean {
+    return value.split('.').length <= 2;
   }
 }

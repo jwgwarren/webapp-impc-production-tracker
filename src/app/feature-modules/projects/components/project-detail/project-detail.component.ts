@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
-import { Project, ProjectAdapter } from '../../model/project';
+import { Project, ProjectAdapter } from '../../../../model/bio/project';
 import { PlanService } from 'src/app/feature-modules/plans';
 import { Plan } from 'src/app/feature-modules/plans/model/plan';
 import { ConfigurationData, PermissionsService, ConfigurationDataService, LoggedUserService } from 'src/app/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { ProjectIntention } from 'src/app/model/bio/project-intention';
+import { UserService } from 'src/app/core/services/user.service';
 
 @Component({
   selector: 'app-project-detail',
@@ -23,11 +25,14 @@ export class ProjectDetailComponent implements OnInit {
 
   assignmentStatusDatesColumns = ['name', 'date'];
 
-  dropdownSettingsSingle = {};
   configurationData: ConfigurationData;
 
   privacies: NamedValue[] = [];
   selectedPrivacy = [];
+
+  projectIntentionsByGene: ProjectIntention[] = [];
+  projectIntentionsByLocation: ProjectIntention[] = [];
+  projectIntentionsBySequence: ProjectIntention[] = [];
 
   projectForm: FormGroup;
 
@@ -39,48 +44,42 @@ export class ProjectDetailComponent implements OnInit {
     private planService: PlanService,
     private permissionsService: PermissionsService,
     private configurationDataService: ConfigurationDataService,
-    private loggedUserService: LoggedUserService) { }
+    private loggedUserService: LoggedUserService,
+    private userService: UserService) { }
 
   ngOnInit() {
-
     this.projectForm = this.formBuilder.group({
       privacy: ['', Validators.required],
       comments: ['', Validators.required],
     });
     this.configurationDataService.getConfigurationData().subscribe(data => {
       this.configurationData = data;
+      this.privacies = this.configurationData.privacies.map(x => ({ name: x }));
     });
-
-    this.dropdownSettingsSingle = {
-      singleSelection: true,
-      idField: 'name',
-      textField: 'name',
-      enableCheckAll: false,
-      allowSearchFilter: true
-    };
 
     this.getProjectData();
   }
 
   private setFormValues(): void {
-    this.privacies = this.configurationData.privacies.map(x => { return { name: x } });
     this.projectForm.get('comments').setValue(this.project.comment);
-
     this.selectedPrivacy = [{ name: this.project.privacyName }];
     this.projectForm.get('privacy').setValue(this.selectedPrivacy);
   }
 
   private getProjectData(): void {
-    const id = this.route.snapshot.params['id'];
+    const id = this.route.snapshot.params.id;
     this.projectService.getProject(id).subscribe(data => {
       this.project = this.projectAdapter.adapt(data);
-      console.log('project:', data);
-
+      console.log('project data::>>', data);
       this.originalProjectAsString = JSON.stringify(data);
       this.getProductionPlans();
       this.gethenotypingPlans();
+      this.loadIntentionsByType();
       this.loadPermissions();
       this.setFormValues();
+      this.error = null;
+    }, error => {
+      this.error = error;
     });
   }
 
@@ -98,9 +97,15 @@ export class ProjectDetailComponent implements OnInit {
     }
   }
 
+  private loadIntentionsByType() {
+    this.projectIntentionsByGene = this.getGeneIntentions();
+    this.projectIntentionsByLocation = this.getLocationIntentions();
+    this.projectIntentionsBySequence = this.getSequenceIntentions();
+  }
+
   private getProductionPlans(): void {
-    if (this.project._links.production_plans) {
-      this.project._links.production_plans.map(x => {
+    if (this.project._links.productionPlans) {
+      this.project._links.productionPlans.map(x => {
         this.planService.getPlanByUrl(x.href).subscribe(plan => {
           this.productionPlansDetails.push(plan);
           this.error = null;
@@ -112,8 +117,8 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   private gethenotypingPlans(): void {
-    if (this.project._links.phenotyping_plans) {
-      this.project._links.phenotyping_plans.map(x => {
+    if (this.project._links.phenotypingPlans) {
+      this.project._links.phenotypingPlans.map(x => {
         this.planService.getPlanByUrl(x.href).subscribe(plan => {
           this.phenotypingPlansDetails.push(plan);
           this.error = null;
@@ -158,11 +163,37 @@ export class ProjectDetailComponent implements OnInit {
   }
 
   shouldUpdateBeEnabled(): boolean {
-    return this.originalProjectAsString != JSON.stringify(this.project);
+    return this.originalProjectAsString !== JSON.stringify(this.project);
+  }
+
+  getSequenceIntentionsByType(type: string): ProjectIntention[] {
+    const projectIntentions: ProjectIntention[] = [];
+    let result = null;
+    if (this.project.projectIntentions) {
+      this.project.projectIntentions.filter(x => x.intentionTypeName === type).map(x => projectIntentions.push(x));
+      if (projectIntentions.length === 0) {
+        result = null;
+      } else {
+        result = projectIntentions;
+      }
+    }
+    return result;
+  }
+
+  getGeneIntentions(): ProjectIntention[] {
+    return this.getSequenceIntentionsByType('gene');
+  }
+
+  getLocationIntentions(): ProjectIntention[] {
+    return this.getSequenceIntentionsByType('location');
+  }
+
+  getSequenceIntentions(): ProjectIntention[] {
+    return this.getSequenceIntentionsByType('sequence');
   }
 
   sortByPid(plans: Plan[]): Plan[] {
-    plans.sort(function (a, b) {
+    plans.sort((a, b) => {
       const nameA = a.pin;
       const nameB = b.pin;
       if (nameA < nameB) {

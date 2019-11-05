@@ -44,7 +44,6 @@ export class ChangesHistoryAdapter implements Adapter<ChangesHistory> {
         } else {
             description = formattedField  + ' updated';
         }
-        
         return description;
     }
 
@@ -57,13 +56,11 @@ export class ChangesHistoryAdapter implements Adapter<ChangesHistory> {
     private getActionOnCollectionElement(newValue, oldValue): string {
         let action;
         if (newValue && oldValue) {
-            action = 'updated'
-        }
-        else if (newValue) {
-            action = 'added'
-        }
-        else {
-            action = 'deleted'
+            action = 'updated';
+        } else if (newValue) {
+            action = 'added';
+        } else {
+            action = 'deleted';
         }
         return action;
     }

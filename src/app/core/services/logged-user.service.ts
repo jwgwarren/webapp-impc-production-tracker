@@ -1,12 +1,14 @@
 import { Injectable } from '@angular/core';
-import { LoggedUser } from '../model/user/logged-user';
-import { Observable, EMPTY } from 'rxjs';
+import { Observable, EMPTY, from } from 'rxjs';
 import { MessageService } from './message.service';
 import { Permission } from '../model/conf/permission';
 import { HttpClient } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+import { map, flatMap } from 'rxjs/operators';
 import { ConfigAssetLoaderService } from './config-asset-loader.service';
 import { AuthenticationResponse } from '../model/user/authentication-response';
+import { AssetConfiguration } from '../model/conf/asset-configuration';
+import { User } from '../model/user/user';
+import { UserService } from './user.service';
 
 @Injectable({
   providedIn: 'root'
@@ -17,23 +19,24 @@ import { AuthenticationResponse } from '../model/user/authentication-response';
 export class LoggedUserService {
 
   private apiServiceUrl;
-  
+
   readonly TOKEN_INFO_KEY = 'tokenInfo';
+
+  private config$: Observable<AssetConfiguration>;
 
   constructor(
     private http: HttpClient,
     private messageService: MessageService,
-    private configAssetLoaderService: ConfigAssetLoaderService) {
-    this.configAssetLoaderService.loadConfigurations().subscribe(data => this.apiServiceUrl = data.appServerUrl);
+    private configAssetLoaderService: ConfigAssetLoaderService,
+    private userService: UserService) {
+    this.config$ = from(this.configAssetLoaderService.getConfig());
   }
 
   // Returns an object with permissions for the logged user.
   getPermissions() {
-    return this.http.get<Permission>(this.apiServiceUrl + '/api/permissions');
-  }
-
-  getSecurityInformation(): Observable<LoggedUser> {
-    return this.http.get<LoggedUser>(this.apiServiceUrl + '/auth/securityInformation');
+    return this.config$.pipe(flatMap(response => {
+      return this.http.get<Permission>(this.apiServiceUrl + '/api/permissions');
+    }));
   }
 
   getAccessToken(): string {
@@ -47,17 +50,18 @@ export class LoggedUserService {
   }
 
   removeToken(): void {
+    console.log('removing token...');
+    this.userService.clearCurrentLoggedUser();
     localStorage.removeItem(this.TOKEN_INFO_KEY);
     this.messageService.setUserLoggedIn(false);
   }
 
-  getLoggerUser(): Observable<LoggedUser> {
-    let loggedUser$: Observable<LoggedUser>;
+  getLoggerUser(): Observable<User> {
+    let loggedUser$: Observable<User>;
     if (!this.getAccessToken()) {
       loggedUser$ = EMPTY;
-    }
-    else {
-      loggedUser$ = this.getSecurityInformation();
+    } else {
+      loggedUser$ = this.userService.getCurrentLoggedUser();
       return loggedUser$;
     }
   }

@@ -17,20 +17,16 @@ export class ErrorInterceptor implements HttpInterceptor {
     }
 
     handleError(error) {
-        console.log(error);
-        
         if (this.isUnauthorisedError(error) || this.isForbiddenError(error)) {
             window.alert('Access denied. Please log as a user with the corresponding permissions to execute the required action.');
             this.authenticationService.logout();
-            //location.reload(true);
             this.router.navigateByUrl(`/login`);
         } else {
             let errorMessage = '';
 
-            if (this.isNotFoundError(error)) {
+            if (this.isNotFoundError(error) && !this.hasApiErrorFormat(error)) {
                 errorMessage = 'The server cannot find the requested resource. Path: ' + error.error.path;
-            }
-            else if (this.hasApiErrorFormat(error)) {
+            } else if (this.hasApiErrorFormat(error)) {
                 errorMessage = this.getApiErrorMessage(error);
 
             } else {
@@ -47,15 +43,15 @@ export class ErrorInterceptor implements HttpInterceptor {
     }
 
     isUnauthorisedError(error): boolean {
-        return error.status === 401
+        return error.status === 401;
     }
 
     isForbiddenError(error): boolean {
-        return error.status === 403
+        return error.status === 403;
     }
 
     isNotFoundError(error): boolean {
-        return error.status === 404
+        return error.status === 404;
     }
 
     hasApiErrorFormat(error): boolean {
@@ -64,10 +60,11 @@ export class ErrorInterceptor implements HttpInterceptor {
 
     getApiErrorMessage(error) {
         let errorMessage = error.error.apierror.message || error.statusText;
-        if (error.error.apierror.subErrors != null) {
+
+        if (error.error.apierror.subErrors) {
             errorMessage += ': ' + error.error.apierror.subErrors[0].message;
         }
-        if (error.error.apierror.debubMessage != null) {
+        if (error.error.apierror.debubMessage) {
             errorMessage += ': ' + error.error.apierror.debubMessage;
         }
         return errorMessage;

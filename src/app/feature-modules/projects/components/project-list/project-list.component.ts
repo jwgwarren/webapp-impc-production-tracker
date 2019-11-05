@@ -1,11 +1,13 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { first } from 'rxjs/operators';
-import { SelectItem } from 'primeng/api';
 import { ProjectService } from '../../services/project.service';
-import { ProjectSummary, ProjectSummaryAdapter } from '../../model/project-summary';
-import { ConfigurationData, ConfigurationDataService, LoggedUserService, LoggedUser } from 'src/app/core';
+import { ConfigurationData, ConfigurationDataService, LoggedUserService } from 'src/app/core';
 import { MatPaginator, MatSort } from '@angular/material';
-import { FormControl } from '@angular/forms';
+import { ProjectFilterService } from '../../services/project-filter.service';
+import { Filter } from 'src/app/core/model/common/filter';
+import { ArrayFilter } from 'src/app/core/model/common/array-filter';
+import { Project, ProjectAdapter } from 'src/app/model/bio/project';
+import { User } from 'src/app/core/model/user/user';
 
 @Component({
   selector: 'app-project-list',
@@ -17,41 +19,34 @@ export class ProjectListComponent implements OnInit {
   @ViewChild(MatSort, { static: false }) sort: MatSort;
 
   isLoading = true;
-  displayedColumns: string[] = ['Project', 'ExternalReference', 'Marker Symbol(s)', 'Intention', 'Project Assignment', 'Privacy', 'Is active', 'Consortium'];
-  intentionsForm = new FormControl();
-  assignmentStatusesForm = new FormControl();
-  projects: ProjectSummary[] = [];
+  projects: Project[] = [];
   p = 0;
   page: any = {};
-  planTypes: SelectItem[];
-  workUnits: SelectItem[];
-  workGroups: SelectItem[];
-  statuses: SelectItem[];
-  privacies: SelectItem[];
 
+  privacies: NamedValue[];
   intentions: NamedValue[];
   assignmentStatuses: NamedValue[];
 
-  selectedPlanTypes: [];
-  selectedWorkGroups: [];
-  selectedWorkUnits: [];
-  selectedStatuses: [];
-  selectedPrivacies: [];
+  tpnFilterInput: string;
+  externalReferenceFilterInput: string;
+  markerSymbolFilterInput: string;
+  intentionsFilterInput: string;
 
-  workUnitFilterValues: string[] = [];
-  workGroupFilterValues: string[] = [];
-  planTypeFilterValues: string[] = [];
-  statusFilterValues: string[] = [];
-  privaciesFilterValues: string[] = [];
+  tpnFilterObject: Filter = new Filter();
+  markerSymbolFilterObject: Filter = new Filter();
+  intentionsFilterObject: ArrayFilter = new ArrayFilter();
+  privaciesFilterObject: ArrayFilter = new ArrayFilter();
 
   configurationData: ConfigurationData;
 
   error;
-  loggedUser: LoggedUser = new LoggedUser();
+  loggedUser: User = new User();
+
+  projectFilterService: ProjectFilterService = new ProjectFilterService();
 
   constructor(
     private projectService: ProjectService,
-    private adapter: ProjectSummaryAdapter,
+    private adapter: ProjectAdapter,
     private loggedUserService: LoggedUserService,
     private configurationDataService: ConfigurationDataService) { }
 
@@ -61,42 +56,42 @@ export class ProjectListComponent implements OnInit {
       this.configurationData = data;
       this.initFiltersValues();
       if (this.loggedUserService.getLoggerUser()) {
-        this.loggedUserService.getLoggerUser().subscribe(data => {
-          this.loggedUser = data;
+        this.loggedUserService.getLoggerUser().subscribe(loggedUserData => {
+          this.loggedUser = loggedUserData;
           this.getPage(0);
         });
       } else {
-        this.loggedUser = new LoggedUser();
-        this.loggedUser.userName = 'anonymous';
+        this.loggedUser = new User();
+        this.loggedUser.name = 'anonymous';
         this.getPage(0);
       }
 
+    }, error => {
+      console.log('error:', error);
+      this.error = error;
+      this.isLoading = false;
     });
   }
 
   private initFiltersValues(): void {
-    this.planTypes = this.configurationData.planTypes.map(p => { return { label: p, value: p } });
-    this.workGroups = this.configurationData.workGroups.map(p => { return { label: p, value: p } });
-    this.workUnits = this.configurationData.workUnits.map(p => { return { label: p, value: p } });
-    this.privacies = this.configurationData.privacies.map(p => { return { label: p, value: p } });
-    this.statuses = this.configurationData.statuses.map(p => { return { label: p, value: p } });
-
-    this.intentions = this.configurationData.alleleTypes.map(p => { return {name: p }});
-    this.assignmentStatuses = this.configurationData.assignmentStatuses.map(p => { return {name: p }});
+    this.intentions = this.configurationData.alleleTypes.map(p => ({ name: p }));
+    this.assignmentStatuses = this.configurationData.assignmentStatuses.map(p => ({ name: p }));
+    this.privacies = this.configurationData.privacies.map(p => ({ name: p }));
   }
 
   getPage(pageNumber: number) {
     this.isLoading = true;
     const apiPageNumber = pageNumber;
     const workUnitNameFilter = this.getWorkUnitNameFilter();
+
+    /* tslint:disable:no-string-literal */
     this.projectService.getPaginatedProjectsWithFilters(
       apiPageNumber,
-      [],
+      this.tpnFilterObject.value,
+      this.getMarkerSymbolFilter(),
+      this.getIntentionsFilter(),
       workUnitNameFilter,
-      this.getWorkGroupFilter(),
-      this.getPlanTypeFilter(),
-      this.getStatusFilter(),
-      this.getPrivacyFilter()).pipe(first()).subscribe(data => {
+      this.getPrivaciesFilter()).pipe(first()).subscribe(data => {
         if (data['_embedded']) {
           this.projects = data['_embedded']['projectDToes'];
           this.projects = this.projects.map(x => this.adapter.adapt(x));
@@ -113,6 +108,7 @@ export class ProjectListComponent implements OnInit {
           this.error = error;
         }
       );
+      /* tslint:enable:no-string-literal */
   }
 
   getWorkUnitNameFilter(): string[] {
@@ -128,68 +124,80 @@ export class ProjectListComponent implements OnInit {
     return workUnitNames;
   }
 
-  filter(e, column) {
-    console.log('Filtering with ', e, 'over', column);
-    switch (column) {
-      case 'work_unit':
-        this.workUnitFilterValues = e;
-        break;
-      case 'work_group':
-        this.workGroupFilterValues = e;
-        break;
-      case 'plan_type':
-        this.planTypeFilterValues = e;
-        break;
-      case 'status':
-        this.statusFilterValues = e;
-        break;
-      case 'privacy':
-        this.privaciesFilterValues = e;
-        break;
-      default:
-        console.error('invalid option', column);
-    }
-    this.isLoading = true;
-    this.getPage(1);
+  filterWithTpn(filterInput) {
+    const currentFilterValue = this.tpnFilterObject.value;
+    this.projectFilterService.updateTpnFilter(this.tpnFilterObject, filterInput);
+    const newFilterValue = this.tpnFilterObject.value;
+    this.reloadIfValuesAreDifferent(currentFilterValue, newFilterValue);
   }
 
-  getWorkUnitFilter(): string[] {
-    if (this.workUnitFilterValues.length === this.workUnits.length) {
-      return [];
-    } else {
-      return this.workUnitFilterValues;
-    }
+  cleanTpnlFilter() {
+    this.tpnFilterInput = '';
+    this.cleanFilter(this.tpnFilterObject);
   }
 
-  getWorkGroupFilter(): string[] {
-    if (!this.workGroups || this.workGroupFilterValues.length === this.workGroups.length) {
-      return [];
-    } else {
-      return this.workGroupFilterValues;
-    }
+  filterWithMarkerSymbol(filterInput) {
+    const currentFilterValue = this.markerSymbolFilterObject.value;
+    this.projectFilterService.updateMarkerSymbolFilter(this.markerSymbolFilterObject, filterInput);
+    const newFilterValue = this.markerSymbolFilterObject.value;
+    this.reloadIfValuesAreDifferent(currentFilterValue, newFilterValue);
   }
 
-  getPlanTypeFilter(): string[] {
-    if (!this.planTypes || this.planTypeFilterValues.length === this.planTypes.length) {
-      return [];
-    } else {
-      return this.planTypeFilterValues;
-    }
+  cleanMarkerSymbolFilter() {
+    this.markerSymbolFilterInput = '';
+    this.cleanFilter(this.markerSymbolFilterObject);
   }
 
-  getStatusFilter(): string[] {
-    if (this.statusFilterValues.length === this.statuses.length) {
-      return [];
-    } else {
-      return this.statusFilterValues;
-    }
+  filterWithIntentions(filterInput) {
+    const currentFilterValue = this.intentionsFilterObject.values;
+    this.projectFilterService.updateIntentionsFilter(this.intentionsFilterObject, filterInput);
+    const newFilterValue = this.intentionsFilterObject.values;
+    this.reloadIfValuesAreDifferent(currentFilterValue, newFilterValue);
   }
 
-  getPrivacyFilter(): string[] {
-    if (this.privaciesFilterValues.length === this.privacies.length) {
-      return [];
-    } else {
-      return this.privaciesFilterValues;
+  filterWithPrivacies(filterInput) {
+    const currentFilterValue = this.privaciesFilterObject.values;
+    this.projectFilterService.updatePrivaciesFilter(this.privaciesFilterObject, filterInput);
+    const newFilterValue = this.privaciesFilterObject.values;
+    this.reloadIfValuesAreDifferent(currentFilterValue, newFilterValue);
+  }
+
+  getMarkerSymbolFilter(): string[] {
+    let result = [];
+    if (this.markerSymbolFilterObject.value) {
+      result = [this.markerSymbolFilterObject.value.trim()];
+    }
+    return result;
+  }
+
+  getIntentionsFilter(): string[] {
+    let result = [];
+    if (this.intentionsFilterObject.values.length > 0) {
+      result = this.intentionsFilterObject.values;
+    }
+    return result;
+  }
+
+  getPrivaciesFilter(): string[] {
+    let result = [];
+    if (this.privaciesFilterObject.values.length > 0) {
+      result = this.privaciesFilterObject.values;
+    }
+    return result;
+  }
+
+  private cleanFilter(filter: Filter) {
+    filter.value = '';
+    this.getPage(0);
+  }
+
+  private reloadIfValuesAreDifferent(currentFilterValue, newFilterValue) {
+    console.log('currentFilterValue:', currentFilterValue, ' newFilterValue:', newFilterValue);
+
+    if (currentFilterValue !== newFilterValue) {
+      console.log('@------->Reloading...');
+
+      this.getPage(0);
     }
   }
 

@@ -16,7 +16,7 @@ export class ConfigurationDataService {
   readonly CONFIGURATIONKEY = 'conf';
 
   constructor(private http: HttpClient, private configAssetLoaderService: ConfigAssetLoaderService) {
-    this.configAssetLoaderService.loadConfigurations().subscribe(data => this.apiServiceUrl = data.appServerUrl);
+    this.configAssetLoaderService.getConfig().then(data => this.apiServiceUrl = data.appServerUrl);
   }
 
   public getConfigurationData() {
@@ -29,7 +29,6 @@ export class ConfigurationDataService {
   }
 
   private fetchConf() {
-    console.warn('Fetch configuration data. Must occur only once.');
     return this.http.get<ConfigurationData>(this.apiServiceUrl + '/api/conf');
   }
 }
