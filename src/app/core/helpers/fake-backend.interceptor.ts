@@ -11,7 +11,6 @@ export class FakeBackendInterceptor implements HttpInterceptor {
         // wrap in delayed observable to simulate server api call
         return of(null).pipe(mergeMap(() => {
             // pass through any requests not handled above
-            console.log('No faked');
 
             return next.handle(request);
         }))
@@ -22,6 +21,16 @@ export class FakeBackendInterceptor implements HttpInterceptor {
             .pipe(dematerialize());
 
         // private helper functions
+
+        function getGenes() {
+            const genes = [
+                {
+                    name: 'Nxn',
+                    id: 'MGI:123456'
+                }
+            ];
+            return genes;
+        }
 
         function ok(body) {
             return of(new HttpResponse({ status: 200, body }));

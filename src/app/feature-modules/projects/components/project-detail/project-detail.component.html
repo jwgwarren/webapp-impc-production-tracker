@@ -18,8 +18,8 @@
       </div>
       <app-intention-by-gene-list *ngIf="projectIntentionsByGene" [projectIntentions]="projectIntentionsByGene">
       </app-intention-by-gene-list>
-      <app-intention-by-location-list *ngIf="projectIntentionsByLocation"
-        [projectIntentions]="projectIntentionsByLocation"></app-intention-by-location-list>
+      <app-intention-by-sequence-list *ngIf="projectIntentionsBySequence"
+        [projectIntentions]="projectIntentionsBySequence"></app-intention-by-sequence-list>
 
       <fieldset>
 
@@ -72,7 +72,7 @@
 </mat-card>
 <mat-card>
   <mat-card-content>
-    <button mat-raised-button color="primary" [disabled]="!shouldUpdateBeEnabled()" *ngIf="canUpdateProject"
+    <button mat-raised-button color="primary" [disabled]="!shouldUpdateBeEnabled()" *ngIf="canUpdateProject && false"
       (click)="updateProject()">Update</button>
   </mat-card-content>
 </mat-card>

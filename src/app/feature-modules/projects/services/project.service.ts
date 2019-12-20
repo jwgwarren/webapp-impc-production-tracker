@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Project } from '../../../model/bio/project';
-import { NewProject } from '../model/newProject';
 import { ConfigAssetLoaderService } from '../../../core/services/config-asset-loader.service';
 import { ChangesHistory } from 'src/app/core';
 
@@ -25,7 +24,7 @@ export class ProjectService {
     return this.http.get<Project>(this.apiServiceUrl + '/api/projects/' + tpn);
   }
 
-  postProject(newProject: NewProject) {
+  postProject(newProject: Project) {
     return this.http.post<Project>(this.apiServiceUrl + '/api/projects/', newProject);
   }
 
@@ -42,9 +41,10 @@ export class ProjectService {
     tpn: string,
     markerSymbols: string[],
     intentions: string[],
+    assignmentStatuses: string[],
     workUnits: string[],
     privacies: string[]) {
-    const queryParameters = this.buildFilterQueryParameters(tpn, markerSymbols, intentions, workUnits, privacies);
+    const queryParameters = this.buildFilterQueryParameters(tpn, markerSymbols, intentions, assignmentStatuses, workUnits, privacies);
     const url = this.apiServiceUrl + '/api/projects?page=' + page + queryParameters;
     return this.http.get<Project[]>(url);
   }
@@ -53,11 +53,13 @@ export class ProjectService {
     tpn: string,
     markerSymbols: string[],
     intentions: string[],
+    assignmentStatuses: string[],
     workUnits: string[],
     privacies: string[]) {
 
     let markerSymbolsAsParameter = '';
     let intentionsAsParameter = '';
+    let assignmentStatusesAsParameter = '';
     let workUnitsAsParameter = '';
     let privaciesAsParameter = '';
 
@@ -72,6 +74,10 @@ export class ProjectService {
 
     if (intentions.length > 0) {
       intentionsAsParameter = intentions.map(x => 'intention=' + x).filter(x => x).join('&');
+    }
+
+    if (assignmentStatuses.length > 0) {
+      assignmentStatusesAsParameter = assignmentStatuses.map(x => 'status=' + x).filter(x => x).join('&');
     }
 
     if (workUnits.length > 0) {
@@ -91,6 +97,9 @@ export class ProjectService {
     }
     if (intentionsAsParameter !== '') {
       queryParameters += '&' + intentionsAsParameter;
+    }
+    if (assignmentStatusesAsParameter !== '') {
+      queryParameters += '&' + assignmentStatusesAsParameter;
     }
     if (workUnitsAsParameter !== '') {
       queryParameters += '&' + workUnitsAsParameter;

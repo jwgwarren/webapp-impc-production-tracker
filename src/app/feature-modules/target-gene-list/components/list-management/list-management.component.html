@@ -1,73 +1,36 @@
-<h4>Target Gene List {{ currentConsortium ?  'for ' + currentConsortium : ''}} </h4>
+<div *ngIf="error" class="alert alert-danger">{{error}}</div>
 
-<p>Please select the consortium for which you want to view/manage the gene list:</p>
-<mat-form-field *ngIf="user">
-  <mat-label>Consortium</mat-label>
-  <mat-select [(value)]="currentConsortium" (selectionChange)="onConsortiumChanged()">
-    <mat-option *ngFor="let consortium of consortia" [value]="consortium.name" required>
-      {{consortium.name}}
-    </mat-option>
-  </mat-select>
-</mat-form-field>
+<button *ngIf="currentConsortium" mat-button (click)="toogleShowFilters()">
+  <mat-icon>filter_list</mat-icon> {{ filterVisible ? 'Hide Filters' : 'Show Filters' }}
+</button>
 
-<mat-toolbar>
-    <button *ngIf="canUpdateList" [disabled]="!currentConsortium" mat-button (click)="openImportDialog()">Import</button>
-    <button (click)="export()" [disabled]="!currentConsortium" mat-button>Export</button>
-</mat-toolbar>
+<div class="all-wrap">
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #drawer class="sidenav" [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+      [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="(isHandset$ | async) === false && filterVisible">
+      <app-filter-container [filters]="filters"></app-filter-container>
+    </mat-sidenav>
+    <mat-sidenav-content class="page-wrap">
+      <mat-card>
+        <mat-card-content>
+          <h4>Gene List {{ currentConsortium ?  'for ' + currentConsortium : ''}} </h4>
+          <app-consortium-selector (consortiumSelected)="onConsortiumSelected($event)"
+            (updatePermissionSet)="onUpdatePermissionSet($event)">
+          </app-consortium-selector>
+        </mat-card-content>
+      </mat-card>
+      <mat-card *ngIf="currentConsortium">
+        <mat-card-content>
 
-<div *ngIf="currentConsortium">
+          <app-list-controls [canUpdateList]="canUpdateList" [currentConsortium]="currentConsortium"
+            (importFileSelected)="onImportFileSelected($event)" (editModeChanged)="onEditModeChanged($event)">
+          </app-list-controls>
 
-  <mat-card>
-    <mat-card-content>
-      <table class="mat-elevation-z8">
-        <thead>
-          <tr>
-            <th>Gene(s)</th>
-            <th>Note</th>
-            <th>Associated Projects</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let element of dataSource">
-            <td class="geneSymbol">
-              <div *ngIf="canUpdateList; then editableGenes else readOnlyGenes">
-              </div>
-              <ng-template #editableGenes>
-                <app-autocomplete-gene-inputs [record]="element"></app-autocomplete-gene-inputs>
-              </ng-template>
-              <ng-template #readOnlyGenes>
-                {{ getGenesSymbols(element) }}
-              </ng-template>
-            </td>
-            <td>
-              <div *ngIf="canUpdateList; then editableNote else readOnlyNote">
-              </div>
-              <ng-template #editableNote>
-                <mat-form-field class="example-full-width">
-                  <input (input)="noteChanged(element, $event.target.value)" matInput [(value)]="element.note">
-                </mat-form-field>
-              </ng-template>
-              <ng-template #readOnlyNote>
-                {{ element.note }}
-              </ng-template>
-            </td>
-            <td>
-              <div *ngFor="let project of element.projects">
-                <div *ngIf="project">
-                  <a routerLink="/projects/{{ project.tpn }}">{{ project.tpn }}</a> [
-                  {{ project.assignmentStatusName || 'Status not defined' }} ]
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <mat-paginator (page)="getPage(this.paginator.pageIndex)" [length]="page.totalElements" [pageSize]="page.size"
-        id="server"></mat-paginator>
-
-    </mat-card-content>
-    <mat-card-actions *ngIf="canUpdateList">
-      <button [disabled]='false' (click)="updateLists()" mat-raised-button color="primary">Update lists</button>
-    </mat-card-actions>
-  </mat-card>
+          <app-list-content #listContent [currentConsortium]="currentConsortium"
+            [canUpdateList]="canUpdateList" [currentSelectedEditMode]="currentSelectedEditMode">
+          </app-list-content>
+        </mat-card-content>
+      </mat-card>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 </div>

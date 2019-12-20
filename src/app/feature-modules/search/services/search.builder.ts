@@ -1,9 +1,10 @@
 import { Search } from '..';
+import { SearchFilter } from '../model/search-filter';
 
 export class SearchBuilder {
     searchType: string;
     inputs: string[];
-    filters: Map<string, string[]> = new Map();
+    filters: SearchFilter;
 
     private constructor() {}
 
@@ -29,8 +30,18 @@ export class SearchBuilder {
         return this;
     }
 
+    withPrivacies(privacies: string[]): SearchBuilder {
+        this.filters.privacyNames = privacies;
+        return this;
+    }
+
     withWorkUnitsNames(workUnitsNames: string[]): SearchBuilder {
-        this.filters.set('workUnitName', workUnitsNames);
+        this.filters.workUnitNames = workUnitsNames;
+        return this;
+    }
+
+    withWorkGroupNames(workGroupNames: string[]): SearchBuilder {
+        this.filters.workGroupNames = workGroupNames;
         return this;
     }
 }

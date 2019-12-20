@@ -1,4 +1,6 @@
+import { Sequence } from './sequence';
+
 export class IntentionBySequence {
-    chrFeatureTypeName: string;
+    sequence: Sequence;
     index: number;
 }
